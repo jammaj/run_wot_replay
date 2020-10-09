@@ -1,0 +1,81 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use File::Basename;
+use Getopt::Long;
+use Cwd;
+
+my ( $help, $replay );
+
+GetOptions( 
+	'help' => \$help,
+);
+
+if ( $help ) {
+	usage();
+}
+
+if ( @ARGV ) { 
+	$replay = join(" ", @ARGV );
+}
+
+# you can change this if you always copy the replays to some other folder, use two backslashes before any space character
+my $replay_folder = "$ENV{HOME}/Library/Application\\ Support/Wargaming.net\\ Game\\ Center/Bottles/wargaminggamecenter64/drive_c/Games/World_of_Tanks_NA/replays";
+
+my $replay_file = defined $replay ? $replay : 'replay_last_battle.wotreplay';
+
+# don't change this, it's the path to the game binary
+my $wot_bin = "/Applications/Wargaming.net\\ Game\\ Center.app/Contents/SharedSupport/wargaminggamecenter/bin/wine $ENV{HOME}/Library/Application\\ Support/Wargaming.net\\ Game\\ Center/Bottles/wargaminggamecenter64/drive_c/Games/World_of_Tanks_NA/win64/WorldOfTanks.exe";
+
+# escape spaces in replay file name if any
+$replay_file =~ s/ /\\ /g;
+
+# file test wants no slash before spaces, shelling out needs two.
+my $test_file = $replay_file;
+$test_file =~ s/\\//g; 
+
+if ( -e $test_file ) {     # file is in current directory
+	my $path = getcwd();
+	$path =~ s/ /\\ /g;
+	$replay_file = "$path/$replay_file";
+}
+else {                     # check for file in default replay folder
+	my $test_file = "$replay_folder/$replay_file";
+	$test_file =~ s/\\//g; 
+	if ( -e $test_file ) {
+		$replay_file = "$replay_folder/$replay_file";
+	}
+	else {
+		print STDERR "\nERROR: no replay file \"$test_file\" found\n";
+		usage();
+	}
+}
+print "running: $wot_bin $replay_file\n";
+exec "$wot_bin $replay_file";
+
+sub usage {
+	my $bin = basename $0;
+	print STDERR "\nUsage: $bin name_of_replay_file.replay\n";
+	print STDERR " if no replay filename given it will play 'replay_last_battle.wotreplay' from the default folder\n";
+	print STDERR " if filename is given, we first look in the current directory, then in the default game directory the file\n";
+	print STDERR "\n";
+	print STDERR " example: ./$0\n";
+	print STDERR "  ** will play the replay_last_battle.wotreplay file from default folder where WOT stores it\n";
+	print STDERR "\n";
+	print STDERR " example: ./$0 \"my uber replay.wotreplay\"\n";
+	print STDERR "  ** will play \"my uber replay.wotreplay\" from the default folder where WOT stores replays\n";
+	print STDERR "\n";
+	print STDERR " example: ./$0 my uber replay.wotreplay\n";
+	print STDERR "\n";
+	print STDERR "  ** will NOT PLAY as it won't find the file, any filename with spaces needs quote marks around it as above\n";
+	print STDERR "\n";
+	print STDERR " next example the file is in your home directory ( default place terminal starts you )\n";
+	print STDERR " example: ./$0 great_replay.wotreplay\n";
+	print STDERR "\n";
+	print STDERR "  ** will play great_replay.wotrplay from your home directory\n";
+	print STDERR "\n";
+	print STDERR "you can add this to your path or whatever to make life simpler\n";
+	print STDERR "\n";
+	exit;
+}
+
